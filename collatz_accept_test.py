@@ -1,6 +1,7 @@
 import random 
 
 f = open('./bad_numbers.txt', 'r')
+#data structs
 bad_map = {}
 
 for line in f:
@@ -9,18 +10,27 @@ for line in f:
 
 f.close()
 
-#file_write = open('./acceptance_test.txt','w')
+file_write = open('./acceptance_test.txt','w')
 
 #lazy cache
 cyc_cache = {}
 bad_list = list(bad_map.keys())
+map_to_blist = {}
 bad_list.sort()
+
+#associate the "bad number" with its' respective index in a sorted list
+for i in range(0, len(bad_list)):
+    map_to_blist[bad_list[i]] = i
 
 #where n is an integer
 def cycle_length(n):
     init_num = n
-    cyc_len = 0
+    cyc_len = 1
     while(n > 1):
+        if(n in cyc_cache):
+            #minus one to offset the init cyc length of 1 for both this and in cache
+            cyc_cache[init_num] = cyc_len + cyc_cache[n] - 1
+            return cyc_cache[init_num]
         if(n % 2 == 0):
             n = n >> 1
         else:
@@ -47,12 +57,15 @@ def range_cyc_length(n , k ):
 
 def check_bad_in_range(start, fin):
     assert start < fin
+    #check the range from start to fin for bad numbers
+    for i in range(start, fin + 1):
+        if i in bad_map:
+            start = i + 1
+            bad_idx = map_to_blist[i]
+            next_bad_num = bad_list[bad_idx + 1]
+            fin = random.randint(start, next_bad_num)
 
-    for bad_number in bad_list:
-        if bad_number > start and bad_number < fin:
-            print("RIP")
-            return bad_number - 1
-    return 0
+    return (start, fin)
 
 collatz_in = open('./XMR73-RunCollatz.in', 'w')
 collatz_out = open('./XMR73-RunCollatz.out','w')
@@ -73,11 +86,8 @@ for i in range(0, 10):
         swap = n
         n = k
         k = swap
-    #returns a nonzero number if there is a "bad num" in range
-    shortened_k = check_bad_in_range(n, k)
-
-    if shortened_k != 0:
-        k = shortened_k
+    #unpack the tuple
+    n, k = check_bad_in_range(n, k)
 
     max_cycl_length = range_cyc_length(n, k)
     write_in += str(n) + ' ' + str(k) + '\n'
